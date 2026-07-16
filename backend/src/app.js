@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import userRoutes from "./routes/userroute.js";
+import assignmentRoutes from "./routes/assignmentRoutes.js";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 
 const app = express();
 
@@ -12,5 +14,10 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/users", userRoutes);
+app.use("/api/assignments", assignmentRoutes);
+
+app.use(notFoundHandler);
+
+app.use(errorHandler);
 
 export default app;
