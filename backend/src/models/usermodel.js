@@ -19,6 +19,29 @@ const mapUser = (row) => {
   };
 };
 
+export const getDefaultAdminCredentials = () => ({
+  username: process.env.DEFAULT_ADMIN_USERNAME || "admin",
+  email: process.env.DEFAULT_ADMIN_EMAIL || "admin@example.com",
+  password: process.env.DEFAULT_ADMIN_PASSWORD || "admin123",
+  role: "admin",
+});
+
+export const ensureDefaultAdminUser = async () => {
+  const adminCredentials = getDefaultAdminCredentials();
+  const existingAdmin = await findUserByEmail(adminCredentials.email);
+
+  if (existingAdmin) {
+    return existingAdmin;
+  }
+
+  return createUser({
+    username: adminCredentials.username,
+    email: adminCredentials.email,
+    password: adminCredentials.password,
+    role: adminCredentials.role,
+  });
+};
+
 export const ensureUsersTable = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -58,6 +81,76 @@ export const findUserById = async (id) => {
   const result = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
 
   return mapUser(result.rows[0]);
+};
+
+export const listUsers = async () => {
+  const result = await pool.query(`
+    SELECT *
+    FROM users
+    ORDER BY id ASC
+  `);
+
+  return result.rows.map(mapUser);
+};
+
+export const updateUserByAdmin = async ({
+  userId,
+  username,
+  email,
+  password,
+  role,
+  isVerified,
+}) => {
+  const fields = [];
+  const values = [];
+  let index = 1;
+
+  const addField = (column, value) => {
+    if (value === undefined) {
+      return;
+    }
+
+    fields.push(`${column} = $${index}`);
+    values.push(value);
+    index += 1;
+  };
+
+  addField("username", username);
+  addField("email", email ? email.toLowerCase() : undefined);
+
+  if (password) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    addField("password", hashedPassword);
+  }
+
+  addField("role", role);
+  addField("is_verified", isVerified);
+  fields.push(`updated_at = NOW()`);
+
+  const result = await pool.query(
+    `
+      UPDATE users
+      SET ${fields.join(", ")}
+      WHERE id = $${index}
+      RETURNING *
+    `,
+    [...values, userId]
+  );
+
+  return mapUser(result.rows[0]);
+};
+
+export const deleteUserByAdmin = async (userId) => {
+  const result = await pool.query(
+    `
+      DELETE FROM users
+      WHERE id = $1
+      RETURNING id
+    `,
+    [userId]
+  );
+
+  return result.rows[0];
 };
 
 export const createUser = async ({ username, email, password, role }) => {
