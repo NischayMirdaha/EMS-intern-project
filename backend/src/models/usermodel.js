@@ -13,6 +13,8 @@ const mapUser = (row) => {
     email: row.email,
     password: row.password,
     role: row.role,
+    className: row.class_name || null,
+    section: row.section || null,
     isVerified: row.is_verified,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -43,6 +45,14 @@ export const ensureUsersTable = async () => {
     ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS registration_otp_hash VARCHAR(64),
     ADD COLUMN IF NOT EXISTS registration_otp_expires_at TIMESTAMPTZ
+  `);
+
+  // class_name and section are used by the assignment module to scope
+  // which assignments a student can see / submit to.
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS class_name VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS section VARCHAR(20)
   `);
 };
 
