@@ -1,18 +1,21 @@
 import pool from "../config/database.js";
 
-export const createAssignment = async ({title, description, dueDate, teacherId}) => {
+export const createAssignment = async ({title, description, instructions, dueDate, maxMarks, status, teacherId}) => {
   const result = await pool.query(
     `
       INSERT INTO assignments (
         title,
         description,
+        instructions,
         due_date,
+        max_marks,
+        status,
         teacher_id
       )
-      VALUES ($1, $2, $3, $4)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `,
-    [title, description, dueDate, teacherId]
+    [title, description, instructions, dueDate, maxMarks, status, teacherId]
   );
 
   return result.rows[0];
@@ -45,19 +48,22 @@ export const findAssignmentById = async (id) => {
   return result.rows[0];
 };
 
-export const updateAssignment = async ({id, title, description, dueDate, teacherId,}) => {
+export const updateAssignment = async ({id, title, description, instructions, dueDate, maxMarks, status, teacherId}) => {
   const result = await pool.query(
     `
       UPDATE assignments
       SET title = $1,
           description = $2,
-          due_date = $3,
+          instructions = $3,
+          due_date = $4,
+          max_marks = $5,
+          status = $6,
           updated_at = NOW()
-      WHERE id = $4
-        AND teacher_id = $5
+      WHERE id = $7
+        AND teacher_id = $8
       RETURNING *
     `,
-    [title, description, dueDate, id, teacherId]
+    [title, description, instructions, dueDate, maxMarks, status, id, teacherId]
   );
 
   return result.rows[0];
