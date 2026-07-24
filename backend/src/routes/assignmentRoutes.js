@@ -12,6 +12,7 @@ import { ROLES } from "../constants/roles.js";
 import {
   uploadAssignmentAttachment,
   handleUploadErrors,
+  cleanupOrphanedUploadOnFailure,
 } from "../middleware/uploadMiddleware.js";
 import submissionRoutes from "./submissionRoutes.js";
 
@@ -27,6 +28,7 @@ router
     authorizeRoles(...TEACHING_STAFF),
     uploadAssignmentAttachment,
     handleUploadErrors,
+    cleanupOrphanedUploadOnFailure,
     createAssignment
   )
   .get(getAssignments); 
@@ -38,6 +40,7 @@ router
     authorizeRoles(...TEACHING_STAFF),
     uploadAssignmentAttachment,
     handleUploadErrors,
+    cleanupOrphanedUploadOnFailure,
     updateAssignment
   )
   .delete(authorizeRoles(...TEACHING_STAFF), deleteAssignment);
