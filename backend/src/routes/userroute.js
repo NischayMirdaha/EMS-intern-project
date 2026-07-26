@@ -8,6 +8,7 @@ import {
   getCurrentUser,
   verifyOtp,
   verifyRegistrationOtp,
+  updateUserClassController,
 } from "../controllers/userController.js";
 
 import {
@@ -19,11 +20,15 @@ import { ROLES } from "../constants/roles.js";
 
 const router = express.Router();
 
+const STAFF_ROLES = [ROLES.TEACHER, ROLES.SCHOOL_ADMIN, ROLES.SUPER_ADMIN];
+
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.get("/me", isAuthenticated, getCurrentUser);
+router.put("/class", isAuthenticated, authorizeRoles(...STAFF_ROLES), updateUserClassController);
+router.put("/:id/class", isAuthenticated, authorizeRoles(...STAFF_ROLES), updateUserClassController);
 router.post("/verify-otp", verifyOtp);
 router.post("/verify-registration-otp", verifyRegistrationOtp);
 router.get("/admin-only", isAuthenticated, authorizeRoles(ROLES.SUPER_ADMIN), (_req, res) =>
