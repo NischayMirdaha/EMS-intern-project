@@ -22,3 +22,6 @@ Thumbs.db
 
 # IDE
 .vscode/
+
+# ignore postman
+postman
