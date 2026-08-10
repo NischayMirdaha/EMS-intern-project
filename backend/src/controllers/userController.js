@@ -9,6 +9,7 @@ import {
   verifyPassword,
   verifyRegistrationOtp as verifyRegistrationOtpFromModel,
   resetPassword as resetPasswordFromModel,
+  updateUserClass
 } from "../models/usermodel.js";
 import {
   isEmailConfigured,
@@ -116,6 +117,8 @@ export const registerUser = async (req, res) => {
     });
   }
 };
+
+
 
 export const loginUser = async (req, res) => {
   try {
@@ -365,4 +368,45 @@ export const verifyRegistrationOtp = async (req, res) => {
       error: error.message,
     });
   }
+
 };
+
+
+export const updateUserClassController = async (req, res) => {
+  try {
+    // If /:id/class is used, update that user.
+    // Otherwise, update the currently logged-in user.
+    const userId = req.params.id || req.user.id;
+
+    const { classId } = req.body;
+
+    if (!classId) {
+      return res.status(400).json({
+        success: false,
+        message: "Class ID is required.",
+      });
+    }
+
+    const user = await updateUserClass(userId, classId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "User class updated successfully.",
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update user class.",
+      error: error.message,
+    });
+  }
+};
+
