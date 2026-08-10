@@ -15,6 +15,7 @@ import {
   sendForgotPasswordOtpEmail,
   sendRegistrationOtpEmail,
 } from "../services/emailService.js";
+import { ROLES, VALID_ROLES } from "../constants/roles.js";
 
 const buildToken = (user) =>
   jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
@@ -36,6 +37,13 @@ export const registerUser = async (req, res) => {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const normalizedUsername = String(username || "").trim();
 
+    if (role && !VALID_ROLES.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role specified.",
+      });
+    }
+
     if (!normalizedUsername || !normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
@@ -43,8 +51,8 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    let resolvedRole = "user";
-    if (role && role !== "user") {
+    let resolvedRole = ROLES.STUDENT; // Default role for self-registration
+    if (role && role !== ROLES.STUDENT) {
       if (
         process.env.ADMIN_REGISTRATION_SECRET &&
         adminSecret === process.env.ADMIN_REGISTRATION_SECRET

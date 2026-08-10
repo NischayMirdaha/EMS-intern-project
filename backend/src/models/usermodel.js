@@ -13,6 +13,8 @@ const mapUser = (row) => {
     email: row.email,
     password: row.password,
     role: row.role,
+    className: row.class_name || null,
+    section: row.section || null,
     isVerified: row.is_verified,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -44,6 +46,14 @@ export const ensureUsersTable = async () => {
     ADD COLUMN IF NOT EXISTS registration_otp_hash VARCHAR(64),
     ADD COLUMN IF NOT EXISTS registration_otp_expires_at TIMESTAMPTZ
   `);
+
+  // class_name and section are used by the assignment module to scope
+  // which assignments a student can see / submit to.
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS class_name VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS section VARCHAR(20)
+  `);
 };
 
 export const findUserByEmail = async (email) => {
@@ -60,15 +70,31 @@ export const findUserById = async (id) => {
   return mapUser(result.rows[0]);
 };
 
-export const createUser = async ({ username, email, password, role }) => {
+export const createUser = async ({ username, email, password, role, className, section }) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   const result = await pool.query(
     `
-      INSERT INTO users (username, email, password, role, is_verified)
-      VALUES ($1, $2, $3, $4, FALSE)
+      INSERT INTO users (username, email, password, role, class_name, section, is_verified)
+      VALUES ($1, $2, $3, $4, $5, $6, FALSE)
       RETURNING *
     `,
-    [username, email.toLowerCase(), hashedPassword, role]
+    [username, email.toLowerCase(), hashedPassword, role, className || null, section || null]
+  );
+
+  return mapUser(result.rows[0]);
+};
+
+export const updateUserClass = async (id, { className, section }) => {
+  const result = await pool.query(
+    `
+      UPDATE users
+      SET class_name = $1,
+          section = $2,
+          updated_at = NOW()
+      WHERE id = $3
+      RETURNING *
+    `,
+    [className || null, section || null, id]
   );
 
   return mapUser(result.rows[0]);
