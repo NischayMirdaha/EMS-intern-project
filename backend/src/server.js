@@ -2,6 +2,7 @@ import "dotenv/config";
 import app from "./app.js";
 import pool from "./config/database.js";
 import { ensureUsersTable } from "./models/usermodel.js";
+import classRoutes from "./routes/classRoute.js";
 
 
 const PORT = process.env.PORT || 3000;
