@@ -3,6 +3,8 @@ import app from "./app.js";
 import pool from "./config/database.js";
 import { ensureUsersTable } from "./models/usermodel.js";
 import classRoutes from "./routes/classRoute.js";
+import { ensureAssignmentsTable } from "./models/assignmentModel.js";
+import { ensureSubmissionsTable } from "./models/submissionModel.js";
 
 
 const PORT = process.env.PORT || 3000;
@@ -11,6 +13,8 @@ pool.connect()
         console.log("Database connected successfully!");
         return ensureUsersTable();
     })
+    .then(() => ensureAssignmentsTable())
+    .then(() => ensureSubmissionsTable())
     .then(() => {
         console.log("Database tables are ready.");
 
@@ -21,3 +25,4 @@ pool.connect()
     .catch((err) => {
         console.error("Database connection failed:", err);
     });
+

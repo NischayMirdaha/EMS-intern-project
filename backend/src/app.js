@@ -3,6 +3,9 @@ import cors from "cors";
 import userRoutes from "./routes/userroute.js";
 import classRoutes from "./routes/classRoute.js";
 import sectionRoutes from "./routes/sectionRoute.js";
+import assignmentRoutes from "./routes/assignmentRoutes.js";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+
 
 const app = express();
 
@@ -16,5 +19,8 @@ app.get("/", (req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/classes", classRoutes);
 app.use("/api/sections", sectionRoutes);
+app.use("/api/assignments", assignmentRoutes);
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;
