@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import pool from "../config/database.js";
+import { isEmailConfigured, sendRegistrationOtpEmail } from "../services/emailService.js";
 
 const mapUser = (row) => {
   if (!row) {
@@ -21,7 +22,7 @@ const mapUser = (row) => {
 
 export const getDefaultAdminCredentials = () => ({
   username: process.env.DEFAULT_ADMIN_USERNAME || "admin",
-  email: process.env.DEFAULT_ADMIN_EMAIL || "admin@example.com",
+  email: process.env.DEFAULT_ADMIN_EMAIL || "manisharai1029@gmail.com",
   password: process.env.DEFAULT_ADMIN_PASSWORD || "admin123",
   role: "admin",
 });
@@ -31,15 +32,43 @@ export const ensureDefaultAdminUser = async () => {
   const existingAdmin = await findUserByEmail(adminCredentials.email);
 
   if (existingAdmin) {
+    if (!existingAdmin.isVerified) {
+      const result = await pool.query(
+        `
+          UPDATE users
+          SET is_verified = TRUE,
+              updated_at = NOW()
+          WHERE id = $1
+          RETURNING *
+        `,
+        [existingAdmin.id]
+      );
+
+      return mapUser(result.rows[0]);
+    }
+
     return existingAdmin;
   }
 
-  return createUser({
+  const newAdmin = await createUser({
     username: adminCredentials.username,
     email: adminCredentials.email,
     password: adminCredentials.password,
     role: adminCredentials.role,
   });
+
+  const result = await pool.query(
+    `
+      UPDATE users
+      SET is_verified = TRUE,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `,
+    [newAdmin.id]
+  );
+
+  return mapUser(result.rows[0]);
 };
 
 export const ensureUsersTable = async () => {

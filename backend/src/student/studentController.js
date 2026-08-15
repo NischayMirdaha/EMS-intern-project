@@ -5,15 +5,15 @@ import {
   findStudentByUserId,
   listStudents as listStudentProfiles,
   createStudentDocument,
-  listStudentDocuments,
+  listStudentDocuments as listStudentDocumentsModel,
   createAcademicRecord,
-  listAcademicHistory,
+  listAcademicHistory as listAcademicHistoryModel,
   createHealthRecord,
-  listHealthRecords,
+  listHealthRecords as listHealthRecordsModel,
   createDisciplinaryRecord,
-  listDisciplinaryRecords,
+  listDisciplinaryRecords as listDisciplinaryRecordsModel,
   createScholarship,
-  listScholarships,
+  listScholarships as listScholarshipsModel,
   createOrUpdateAlumniProfile as createOrUpdateAlumniProfileModel,
   listAlumni as listAlumniRecords,
 } from "./studentModel.js";
@@ -164,7 +164,7 @@ export const listStudentDocuments = async (req, res) => {
       return res.status(400).json({ success: false, message: "A valid student id is required." });
     }
 
-    const documents = await listStudentDocuments(studentId);
+    const documents = await listStudentDocumentsModel(studentId);
     return res.status(200).json({ success: true, documents });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to load documents.", error: error.message });
@@ -207,7 +207,7 @@ export const listAcademicHistory = async (req, res) => {
       return res.status(400).json({ success: false, message: "A valid student id is required." });
     }
 
-    const records = await listAcademicHistory(studentId);
+    const records = await listAcademicHistoryModel(studentId);
     return res.status(200).json({ success: true, records });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to load academic history.", error: error.message });
@@ -248,7 +248,7 @@ export const listHealthRecords = async (req, res) => {
       return res.status(400).json({ success: false, message: "A valid student id is required." });
     }
 
-    const records = await listHealthRecords(studentId);
+    const records = await listHealthRecordsModel(studentId);
     return res.status(200).json({ success: true, records });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to load health records.", error: error.message });
@@ -289,7 +289,7 @@ export const listDisciplinaryRecords = async (req, res) => {
       return res.status(400).json({ success: false, message: "A valid student id is required." });
     }
 
-    const records = await listDisciplinaryRecords(studentId);
+    const records = await listDisciplinaryRecordsModel(studentId);
     return res.status(200).json({ success: true, records });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to load disciplinary records.", error: error.message });
@@ -330,7 +330,7 @@ export const listScholarships = async (req, res) => {
       return res.status(400).json({ success: false, message: "A valid student id is required." });
     }
 
-    const scholarships = await listScholarships(studentId);
+    const scholarships = await listScholarshipsModel(studentId);
     return res.status(200).json({ success: true, scholarships });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to load scholarships.", error: error.message });
