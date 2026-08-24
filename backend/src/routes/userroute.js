@@ -8,6 +8,7 @@ import {
   getCurrentUser,
   verifyOtp,
   verifyRegistrationOtp,
+  changePassword,
 } from "../controllers/userController.js";
 
 import {
@@ -22,6 +23,7 @@ router.post("/login", loginUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.get("/me", isAuthenticated, getCurrentUser);
+router.post("/change-password", isAuthenticated, changePassword);
 router.post("/verify-otp", verifyOtp);
 router.post("/verify-registration-otp", verifyRegistrationOtp);
 router.get("/admin-only", isAuthenticated, authorizeRoles("admin"), (_req, res) =>

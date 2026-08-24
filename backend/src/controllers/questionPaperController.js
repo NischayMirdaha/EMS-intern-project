@@ -1,8 +1,24 @@
-import pool from "../config/database.js";
+import {
+  findExamByIdModel,
+  findQuestionPaperModel,
+  createQuestionPaperModel,
+  getAllQuestionPapersModel,
+  getQuestionPaperByIdModel,
+  updateQuestionPaperModel,
+  deleteQuestionPaperModel,
+} from "../models/questionPaperModel.js";
 
-// Create Question Paper
+import { uploadPDFToCloudinary } from "../services/cloudinaryService.js";
+
+// =====================================================
+// CREATE QUESTION PAPER
+// =====================================================
+
 export const createQuestionPaper = async (req, res) => {
   try {
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
+
     const {
       exam_id,
       subject_name,
@@ -25,126 +41,102 @@ export const createQuestionPaper = async (req, res) => {
     }
 
     // Check if exam exists
-    const exam = await pool.query(
-      "SELECT * FROM exams WHERE id = $1",
-      [exam_id]
-    );
+    const exam = await findExamByIdModel(exam_id);
 
-    if (exam.rows.length === 0) {
+    if (!exam) {
       return res.status(404).json({
         success: false,
         message: "Exam not found.",
       });
     }
 
-    // Check duplicate subject paper for same exam
-    const existingPaper = await pool.query(
-      `
-      SELECT * FROM question_papers
-      WHERE exam_id = $1
-      AND LOWER(subject_name) = LOWER($2)
-      `,
-      [exam_id, subject_name]
+    // Check duplicate subject paper
+    const existingPaper = await findQuestionPaperModel(
+      exam_id,
+      subject_name
     );
 
-    if (existingPaper.rows.length > 0) {
+    if (existingPaper) {
       return res.status(400).json({
         success: false,
         message: "Question paper already exists for this subject.",
       });
     }
 
+    // Upload PDF to Cloudinary
+    let file_url = null;
+
+    if (req.file) {
+      const uploadResult = await uploadPDFToCloudinary(
+        req.file.buffer,
+        req.file.originalname
+      );
+
+      file_url = uploadResult.secure_url;
+    }
+
     // Create Question Paper
-    const result = await pool.query(
-      `
-      INSERT INTO question_papers
-      (
-        exam_id,
-        subject_name,
-        total_marks,
-        duration_minutes,
-        instructions
-      )
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-      `,
-      [
-        exam_id,
-        subject_name,
-        total_marks,
-        duration_minutes,
-        instructions,
-      ]
+    const questionPaper = await createQuestionPaperModel(
+      exam_id,
+      subject_name,
+      total_marks,
+      duration_minutes,
+      instructions,
+      file_url
     );
 
     return res.status(201).json({
       success: true,
       message: "Question paper created successfully.",
-      data: result.rows[0],
+      data: questionPaper,
     });
 
   } catch (error) {
+    console.error("Create Question Paper Error:", error);
+
     return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-// Get All Question Papers
+
+
+// =====================================================
+// GET ALL QUESTION PAPERS
+// =====================================================
+
 export const getAllQuestionPapers = async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT
-        question_papers.id,
-        question_papers.exam_id,
-        exams.exam_name,
-        question_papers.subject_name,
-        question_papers.total_marks,
-        question_papers.duration_minutes,
-        question_papers.instructions,
-        question_papers.created_at
-      FROM question_papers
-      JOIN exams
-        ON question_papers.exam_id = exams.id
-      ORDER BY question_papers.id ASC
-    `);
+    const questionPapers = await getAllQuestionPapersModel();
 
     return res.status(200).json({
       success: true,
-      data: result.rows,
+      data: questionPapers,
     });
+
   } catch (error) {
+    console.error("Get All Question Papers Error:", error);
+
     return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-// Get Single Question Paper
+
+
+// =====================================================
+// GET SINGLE QUESTION PAPER
+// =====================================================
+
 export const getQuestionPaperById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query(
-      `
-      SELECT
-        question_papers.id,
-        question_papers.exam_id,
-        exams.exam_name,
-        question_papers.subject_name,
-        question_papers.total_marks,
-        question_papers.duration_minutes,
-        question_papers.instructions,
-        question_papers.created_at
-      FROM question_papers
-      JOIN exams
-        ON question_papers.exam_id = exams.id
-      WHERE question_papers.id = $1
-      `,
-      [id]
-    );
+    const questionPaper = await getQuestionPaperByIdModel(id);
 
-    if (result.rows.length === 0) {
+    if (!questionPaper) {
       return res.status(404).json({
         success: false,
         message: "Question paper not found.",
@@ -153,17 +145,24 @@ export const getQuestionPaperById = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: result.rows[0],
+      data: questionPaper,
     });
 
   } catch (error) {
+    console.error("Get Question Paper Error:", error);
+
     return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-// Update Question Paper
+
+
+// =====================================================
+// UPDATE QUESTION PAPER
+// =====================================================
+
 export const updateQuestionPaper = async (req, res) => {
   try {
     const { id } = req.params;
@@ -190,12 +189,9 @@ export const updateQuestionPaper = async (req, res) => {
     }
 
     // Check if exam exists
-    const exam = await pool.query(
-      "SELECT * FROM exams WHERE id = $1",
-      [exam_id]
-    );
+    const exam = await findExamByIdModel(exam_id);
 
-    if (exam.rows.length === 0) {
+    if (!exam) {
       return res.status(404).json({
         success: false,
         message: "Exam not found.",
@@ -203,47 +199,55 @@ export const updateQuestionPaper = async (req, res) => {
     }
 
     // Check duplicate subject paper
-    const existingPaper = await pool.query(
-      `
-      SELECT * FROM question_papers
-      WHERE exam_id = $1
-      AND LOWER(subject_name) = LOWER($2)
-      AND id != $3
-      `,
-      [exam_id, subject_name, id]
+    const existingPaper = await findQuestionPaperModel(
+      exam_id,
+      subject_name,
+      id
     );
 
-    if (existingPaper.rows.length > 0) {
+    if (existingPaper) {
       return res.status(400).json({
         success: false,
         message: "Question paper already exists for this subject.",
       });
     }
 
+    // Get existing question paper
+    const existingQuestionPaper =
+      await getQuestionPaperByIdModel(id);
+
+    if (!existingQuestionPaper) {
+      return res.status(404).json({
+        success: false,
+        message: "Question paper not found.",
+      });
+    }
+
+    // Keep old file URL if no new file is uploaded
+    let file_url = existingQuestionPaper.file_url || null;
+
+    // Upload new PDF if provided
+    if (req.file) {
+      const uploadResult = await uploadPDFToCloudinary(
+        req.file.buffer,
+        req.file.originalname
+      );
+
+      file_url = uploadResult.secure_url;
+    }
+
     // Update Question Paper
-    const result = await pool.query(
-      `
-      UPDATE question_papers
-      SET
-        exam_id = $1,
-        subject_name = $2,
-        total_marks = $3,
-        duration_minutes = $4,
-        instructions = $5
-      WHERE id = $6
-      RETURNING *
-      `,
-      [
-        exam_id,
-        subject_name,
-        total_marks,
-        duration_minutes,
-        instructions,
-        id,
-      ]
+    const questionPaper = await updateQuestionPaperModel(
+      id,
+      exam_id,
+      subject_name,
+      total_marks,
+      duration_minutes,
+      instructions,
+      file_url
     );
 
-    if (result.rows.length === 0) {
+    if (!questionPaper) {
       return res.status(404).json({
         success: false,
         message: "Question paper not found.",
@@ -253,27 +257,31 @@ export const updateQuestionPaper = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Question paper updated successfully.",
-      data: result.rows[0],
+      data: questionPaper,
     });
 
   } catch (error) {
+    console.error("Update Question Paper Error:", error);
+
     return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-// Delete Question Paper
+
+
+// =====================================================
+// DELETE QUESTION PAPER
+// =====================================================
+
 export const deleteQuestionPaper = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query(
-      "DELETE FROM question_papers WHERE id = $1 RETURNING *",
-      [id]
-    );
+    const questionPaper = await deleteQuestionPaperModel(id);
 
-    if (result.rows.length === 0) {
+    if (!questionPaper) {
       return res.status(404).json({
         success: false,
         message: "Question paper not found.",
@@ -284,10 +292,84 @@ export const deleteQuestionPaper = async (req, res) => {
       success: true,
       message: "Question paper deleted successfully.",
     });
+
   } catch (error) {
+    console.error("Delete Question Paper Error:", error);
+
     return res.status(500).json({
       success: false,
       message: error.message,
     });
+  }
+};
+
+
+// =====================================================
+// STREAM QUESTION PAPER (INLINE VIEW AS PDF)
+// =====================================================
+
+export const streamQuestionPaperFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const paper = await getQuestionPaperByIdModel(id);
+
+    if (!paper || !paper.file_url) {
+      return res.status(404).send("Question paper file not found.");
+    }
+
+    const response = await fetch(paper.file_url);
+    if (!response.ok) {
+      return res.status(response.status).send("Failed to retrieve file from Cloudinary.");
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const safeName = (paper.subject_name || "Question_Paper").replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${safeName}_Question_Paper.pdf"`);
+    res.setHeader("Content-Length", buffer.length);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+
+    return res.send(buffer);
+  } catch (error) {
+    console.error("Stream Question Paper Error:", error);
+    return res.status(500).send("Error streaming question paper.");
+  }
+};
+
+
+// =====================================================
+// DOWNLOAD QUESTION PAPER (ATTACHMENT WITH .PDF EXTENSION)
+// =====================================================
+
+export const downloadQuestionPaperFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const paper = await getQuestionPaperByIdModel(id);
+
+    if (!paper || !paper.file_url) {
+      return res.status(404).send("Question paper file not found.");
+    }
+
+    const response = await fetch(paper.file_url);
+    if (!response.ok) {
+      return res.status(response.status).send("Failed to retrieve file from Cloudinary.");
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const safeName = (paper.subject_name || "Question_Paper").replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${safeName}_Question_Paper.pdf"`);
+    res.setHeader("Content-Length", buffer.length);
+
+    return res.send(buffer);
+  } catch (error) {
+    console.error("Download Question Paper Error:", error);
+    return res.status(500).send("Error downloading question paper.");
   }
 };

@@ -1,4 +1,6 @@
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import pool from "../config/database.js";
 import {
   createRegistrationOtp,
   createForgotPasswordOtp,
@@ -22,13 +24,66 @@ const buildToken = (user) =>
   });
 
 const sanitizeUser = (user) => ({
-  id: user.id,
-  username: user.username,
-  email: user.email,
-  role: user.role,
-  isVerified: user.isVerified,
-  createdAt: user.createdAt,
+  id: user?.id,
+  username: user?.username,
+  email: user?.email,
+  role: user?.role,
+  isVerified: user?.is_verified ?? user?.isVerified,
+  createdAt: user?.created_at ?? user?.createdAt,
 });
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password and new password are required.",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be at least 6 characters long.",
+      });
+    }
+
+    // Verify current password
+    const isCurrentValid = await verifyPassword(currentPassword, req.user.password);
+    if (!isCurrentValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Incorrect current password.",
+      });
+    }
+
+    // Hash and update
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const result = await pool.query(
+      `
+      UPDATE users
+      SET password = $1
+      WHERE id = $2
+      RETURNING *
+      `,
+      [hashedPassword, req.user.id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully.",
+      user: sanitizeUser(result.rows[0]),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Password change failed.",
+      error: error.message,
+    });
+  }
+};
 
 export const registerUser = async (req, res) => {
   try {
