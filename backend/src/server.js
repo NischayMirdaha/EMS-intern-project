@@ -15,6 +15,7 @@ pool.connect()
     .then(() => ensureAssignmentsTable())
     .then(() => ensureSubmissionsTable())
     .then(() => ensureOnlineClassesTable())
+    .then(() => ensureForumTables())
     .then(() => {
         console.log("Database tables are ready.");
 
