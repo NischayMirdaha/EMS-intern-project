@@ -4,6 +4,7 @@ import userRoutes from "./routes/userroute.js";
 import classRoutes from "./routes/classRoute.js";
 import sectionRoutes from "./routes/sectionRoute.js";
 import assignmentRoutes from "./routes/assignmentRoutes.js";
+import onlineClassRoutes from "./routes/onlineClassRoutes.js"
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 
 const app = express();

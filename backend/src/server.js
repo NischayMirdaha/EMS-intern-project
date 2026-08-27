@@ -7,6 +7,7 @@ import { ensureSectionsTable } from "./models/sectionModel.js";
 import classRoutes from "./routes/classRoute.js";
 import { ensureAssignmentsTable } from "./models/assignmentModel.js";
 import { ensureSubmissionsTable } from "./models/submissionModel.js";
+import {ensureOnlineClassesTable} from "./models/onlineClassModel.js"
 
 
 const PORT = process.env.PORT || 3000;
@@ -27,14 +28,15 @@ pool.connect()
     .then(() => {
         console.log("Database tables are ready.");
     })
+     .catch((err) => {
+    console.error("Database initialization failed:", err);
+  });
 
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     })
 
-  .catch((err) => {
-    console.error("Database initialization failed:", err);
-  });
+ 
 
 
