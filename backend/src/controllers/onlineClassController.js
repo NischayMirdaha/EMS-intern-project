@@ -73,7 +73,7 @@ export const getOnlineClasses = asyncHandler(async (req, res) => {
     if (!req.user.className) {
       return failure(res, {
         status: 400,
-        message: "Your account has no class assigned yet.",
+        messagte: "Your account has no class assigned yet.",
       });
     }
 
