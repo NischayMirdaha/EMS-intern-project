@@ -102,6 +102,23 @@ export const createAssignment = async ({
   return mapAssignment(result.rows[0]);
 };
 
+
+
+export const findAssignmentsByTeacher = async (teacherId) => {
+  const result = await pool.query(
+    `
+      SELECT *
+      FROM assignments
+      WHERE teacher_id = $1
+      ORDER BY created_at DESC
+    `,
+    [teacherId]
+  );
+
+  return result.rows;
+
+};
+
 export const findAssignmentById = async (id) => {
   const result = await pool.query(
     `SELECT * FROM assignments WHERE id = $1 AND deleted_at IS NULL`,
@@ -207,9 +224,26 @@ export const softDeleteAssignment = async (id) => {
       SET deleted_at = NOW(), updated_at = NOW()
       WHERE id = $1 AND deleted_at IS NULL
       RETURNING *
+
     `,
     [id]
   );
-
-  return mapAssignment(result.rows[0]);
+  return result.rows[0];
 };
+
+
+
+export const deleteAssignment = async ({id, teacherId}) => {
+  const result = await pool.query(
+    `
+      DELETE FROM assignments
+      WHERE id = $1
+        AND teacher_id = $2
+      RETURNING *
+    `,
+    [id, teacherId]
+  );
+
+  return result.rows[0];
+};
+

@@ -6,11 +6,16 @@ import sectionRoutes from "./routes/sectionRoute.js";
 import assignmentRoutes from "./routes/assignmentRoutes.js";
 import onlineClassRoutes from "./routes/onlineClassRoutes.js"
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import assignmentSubmissionRoutes from "./routes/assignmentSubmissionRoutes.js";
+
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.use("/api/assignment-submissions", assignmentSubmissionRoutes);
+
 
 app.get("/", (req, res) => {
     res.send("Server is running!");
