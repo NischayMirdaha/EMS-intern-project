@@ -6,6 +6,10 @@ import {
   forgotPassword,
   resetPassword,
   getCurrentUser,
+  listAllUsers,
+  getUserByAdmin,
+  updateUserByAdmin,
+  deleteUserByAdmin,
   verifyOtp,
   verifyRegistrationOtp,
   updateUserClassController,
@@ -21,14 +25,20 @@ import { ROLES } from "../constants/roles.js";
 const router = express.Router();
 
 const STAFF_ROLES = [ROLES.TEACHER, ROLES.SCHOOL_ADMIN, ROLES.SUPER_ADMIN];
+const ADMIN_ROLES = [ROLES.SCHOOL_ADMIN, ROLES.SUPER_ADMIN];
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.get("/me", isAuthenticated, getCurrentUser);
+
 router.put("/class", isAuthenticated, authorizeRoles(...STAFF_ROLES), updateUserClassController);
 router.put("/:id/class", isAuthenticated, authorizeRoles(...STAFF_ROLES), updateUserClassController);
+router.get("/admin/users", isAuthenticated, authorizeRoles(...ADMIN_ROLES), listAllUsers);
+router.get("/admin/users/:id", isAuthenticated, authorizeRoles(...ADMIN_ROLES), getUserByAdmin);
+router.put("/admin/users/:id", isAuthenticated, authorizeRoles(...ADMIN_ROLES), updateUserByAdmin);
+router.delete("/admin/users/:id", isAuthenticated, authorizeRoles(...ADMIN_ROLES), deleteUserByAdmin);
 router.post("/verify-otp", verifyOtp);
 router.post("/verify-registration-otp", verifyRegistrationOtp);
 router.get("/admin-only", isAuthenticated, authorizeRoles(ROLES.SUPER_ADMIN), (_req, res) =>

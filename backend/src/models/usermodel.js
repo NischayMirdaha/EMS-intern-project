@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import pool from "../config/database.js";
+import { isEmailConfigured, sendRegistrationOtpEmail } from "../services/emailService.js";
 
 const mapUser = (row) => {
   if (!row) {
@@ -21,6 +22,57 @@ const mapUser = (row) => {
   };
 };
 
+export const getSuperAdminCredentials = () => ({
+  username: process.env.SUPER_ADMIN_USERNAME || "super_admin",
+  email: process.env.SUPER_ADMIN_EMAIL || "manisharai1029@gmail.com",
+  password: process.env.SUPER_ADMIN_PASSWORD || "admin123",
+  role: "super_admin",
+});
+
+export const ensureSuperAdminUser = async () => {
+  const adminCredentials = getSuperAdminCredentials();
+  const existingAdmin = await findUserByEmail(adminCredentials.email);
+
+  if (existingAdmin) {
+    if (!existingAdmin.isVerified) {
+      const result = await pool.query(
+        `
+          UPDATE users
+          SET is_verified = TRUE,
+              updated_at = NOW()
+          WHERE id = $1
+          RETURNING *
+        `,
+        [existingAdmin.id]
+      );
+
+      return mapUser(result.rows[0]);
+    }
+
+    return existingAdmin;
+  }
+
+  const newAdmin = await createUser({
+    username: adminCredentials.username,
+    email: adminCredentials.email,
+    password: adminCredentials.password,
+    role: adminCredentials.role,
+  });
+
+  const result = await pool.query(
+    `
+      UPDATE users
+      SET is_verified = TRUE,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `,
+    [newAdmin.id]
+  );
+
+  return mapUser(result.rows[0]);
+};
+
 export const ensureUsersTable = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -30,7 +82,10 @@ export const ensureUsersTable = async () => {
       password VARCHAR(255) NOT NULL,
       role VARCHAR(30) NOT NULL DEFAULT 'user',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      
+      CONSTRAINT chk_role
+      CHECK (role IN ('admin', 'school_admin', 'teacher', 'student','super_admin'))
     )
   `);
 
@@ -70,7 +125,78 @@ export const findUserById = async (id) => {
   return mapUser(result.rows[0]);
 };
 
+
+export const listUsers = async () => {
+  const result = await pool.query(`
+    SELECT *
+    FROM users
+    ORDER BY id ASC
+  `);
+
+  return result.rows.map(mapUser);
+};
+
+export const updateUserByAdmin = async ({
+  userId,
+  username,
+  email,
+  password,
+  role,
+  isVerified,
+}) => {
+  const fields = [];
+  const values = [];
+  let index = 1;
+
+  const addField = (column, value) => {
+    if (value === undefined) {
+      return;
+    }
+
+    fields.push(`${column} = $${index}`);
+    values.push(value);
+    index += 1;
+  };
+
+  addField("username", username);
+  addField("email", email ? email.toLowerCase() : undefined);
+
+  if (password) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    addField("password", hashedPassword);
+  }
+
+  addField("role", role);
+  addField("is_verified", isVerified);
+  fields.push(`updated_at = NOW()`);
+
+  const result = await pool.query(
+    `
+      UPDATE users
+      SET ${fields.join(", ")}
+      WHERE id = $${index}
+      RETURNING *
+    `,
+    [...values, userId]
+  );
+
+  return mapUser(result.rows[0]);
+};
+
+export const deleteUserByAdmin = async (userId) => {
+  const result = await pool.query(
+    `
+      DELETE FROM users
+      WHERE id = $1
+      RETURNING id
+    `,
+    [userId]
+  );
+
+  return result.rows[0];
+};
 export const createUser = async ({ username, email, password, role, className, section }) => {
+
   const hashedPassword = await bcrypt.hash(password, 10);
   const result = await pool.query(
     `

@@ -7,6 +7,8 @@ import assignmentRoutes from "./routes/assignmentRoutes.js";
 import onlineClassRoutes from "./routes/onlineClassRoutes.js"
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import assignmentSubmissionRoutes from "./routes/assignmentSubmissionRoutes.js";
+import staffRoutes from "./routes/staffRoute.js";
+import studentRoutes from "./routes/studentRoute.js";
 
 
 const app = express();
@@ -26,9 +28,9 @@ app.use("/api/classes", classRoutes);
 app.use("/api/sections", sectionRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/online-classes", onlineClassRoutes);
-
+app.use("/api/staff", staffRoutes);
+app.use("/api/students", studentRoutes);
 app.use(notFoundHandler);
-
 app.use(errorHandler);
 
 export default app;

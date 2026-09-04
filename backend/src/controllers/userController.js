@@ -4,7 +4,11 @@ import {
   createForgotPasswordOtp,
   createUser,
   findUserByEmail,
+  findUserById,
+  listUsers,
   updatePendingUser,
+  updateUserByAdmin as updateUserRecordByAdmin,
+  deleteUserByAdmin as deleteUserRecordByAdmin,
   verifyForgotPasswordOtp,
   verifyPassword,
   verifyRegistrationOtp as verifyRegistrationOtpFromModel,
@@ -267,6 +271,138 @@ export const getCurrentUser = async (req, res) =>
     success: true,
     user: sanitizeUser(req.user),
   });
+
+export const listAllUsers = async (_req, res) => {
+  try {
+    const users = await listUsers();
+
+    return res.status(200).json({
+      success: true,
+      users: users.map(sanitizeUser),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load users.",
+      error: error.message,
+    });
+  }
+};
+
+export const getUserByAdmin = async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+
+    if (!Number.isInteger(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid user id is required.",
+      });
+    }
+
+    const user = await findUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch user.",
+      error: error.message,
+    });
+  }
+};
+
+export const updateUserByAdmin = async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    const { username, email, password, role, isVerified } = req.body;
+
+    if (!Number.isInteger(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid user id is required.",
+      });
+    }
+
+    const updatedUser = await updateUserRecordByAdmin({
+      userId,
+      username,
+      email,
+      password,
+      role,
+      isVerified,
+    });
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "User updated successfully.",
+      user: sanitizeUser(updatedUser),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update user.",
+      error: error.message,
+    });
+  }
+};
+
+export const deleteUserByAdmin = async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+
+    if (!Number.isInteger(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid user id is required.",
+      });
+    }
+
+    if (req.user?.id === userId) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot delete your own account.",
+      });
+    }
+
+    const deletedUser = await deleteUserRecordByAdmin(userId);
+
+    if (!deletedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "User deleted successfully.",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete user.",
+      error: error.message,
+    });
+  }
+};
 
 export const verifyOtp = async (req, res) => {
   try {
