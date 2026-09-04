@@ -25,7 +25,7 @@ router.use(isAuthenticated);
 router
   .route("/")
   .post(
-    authorizeRoles(...TEACHING_STAFF),
+    authorizeRoles(...TEACHING_STAFF), 
     uploadAssignmentAttachment,
     handleUploadErrors,
     cleanupOrphanedUploadOnFailure,
